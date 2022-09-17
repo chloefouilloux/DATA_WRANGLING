@@ -1,0 +1,234 @@
+---
+title: "Data_Wrangling"
+author: "Chloe Fouilloux"
+date: '2022-09-13'
+output: html_document
+---
+
+Welcome, let's look at what it takes to wrangle some data. Let's get into the world of dplyr. 
+
+https://twitter.com/daniel_isita/status/1542180860123914241
+
+Hi welcome back and today we're going to learn how to wrangle some data! It can be quite intimidating to approach as data wrangling involves learning a WHOLE NEW LANGUAGE-- so it makes sense that this will be hard!
+
+There are VERBS, vector FUNCTIONS, SELECTION LANGUAGE, and then the implicit meaning of various characters (SYNTAX).
+
+*verbs*: https://dplyr.tidyverse.org/
+
+*vector functions*: https://dplyr.tidyverse.org/reference/index.html
+
+*selection language*: https://tidyselect.r-lib.org/reference/language.html
+
+*syntax* : https://style.tidyverse.org/syntax.html 
+
+*data transformation cheatsheet*: https://github.com/rstudio/cheatsheets/blob/main/data-transformation.pdf
+
+I feel like in coding we often jump right in without even explaining to you what the alphabet even looks like. We won't get into everything today, but I hope to cover some of the lesser-known basics you maybe never properly learned and some more advanced tricks that will make your life so much easier. 
+
+I will be illustrating today's examples with code, but also with sandwhiches, because I am an extremely food-motivated learner and maybe you are too. 
+
+Let's talk about this in terms of sandwhiches.
+```{r}
+library(tidyverse) #contains ggplot!
+
+```
+
+#First let's talk about merging datasets
+
+```{r}
+data("beavers")
+
+#EXPLAIN DOLLAR SIGN. I HAVE A DATASET, I AM MAKING A NEW COLUMN, AND THAT COLUMN'S VALUE IS "JIM"
+
+#We have two data sets, that have unequal row numbers. 
+#Lets say we want to bind them together, but we don't want to forget which beaver is which, so each beaver should have its own name
+
+#This is a clean joint, but who is beaver 1 and beaver 2?
+#Now this works is all of the columns have the same names, and it just 
+#smashes everything together
+
+#NOTICE, 214 OBSERVATIONS, JUST SMASHED TOGETHER
+#Notice Jim for first half, NAs for second
+
+ # **TWO SANDWHICHES PUT TOGETHER NEXT TO EACH OTHER**
+  
+test<- full_join(beaver1, beaver2)
+
+#RIGHTJOIN AND INNER JOIN SMASH DATA SETS TOGETHER, BUT AREN'T REALLY INTERESTING FOR OUR PURPOSES. 
+#Retains only rows in both sets depending on variable of your choice.
+#When we don't specify anything, it goes to 0
+#Let's try "day" -- these data sets dont share any
+#matches rows from beaver 1 to beaver 2
+
+# SANDWHICH IS YOUR UNIT. ADD CHEESE
+# SANDWHICH$CHEESE <- "CHEDDAR"
+# SANDWHICH$BREAD <- "RYE"
+
+beaver1$name <- "Jim"
+beaver2$name <- "George"
+
+# WHAT DO BOTH SANDWHICHES HAVE IN COMMON,: LETTUCE, TOMATO, WHATEVER.
+
+#Anything that both datasets share. 
+test2<- inner_join(beaver1, beaver2, by = "time") #these are the time stamps they share, 99obs
+#you could also do this by another variable
+
+test3<- inner_join(beaver1, beaver2, by = "temp") #now it's 41 obs.
+
+```
+
+
+Let's now do this a more elegant way.
+The concept of the pipe is very similar to visiting Subway. 
+
+```{r}
+
+#SHORT GRAPHING BREAK
+
+beaver1$name <- "Jim"
+beaver2$name <- "George"
+
+test4<- full_join(beaver1, beaver2) %>%
+        mutate(mean_temp= mean(temp))
+
+ggplot(test4, aes(y = temp, x = time, colour = name)) + 
+geom_hline(aes(yintercept = mean_temp), 
+             linetype = "dashed", color = "lightgrey") +
+  geom_line(size=1.5) + 
+  geom_point(shape = 21, size = 3, stroke = 2, 
+             fill = "white") + 
+  scale_color_brewer(palette = "YlGnBu", 
+                     name = "Beaver ID")+ 
+  xlab("Time of Day")+
+  ylab("Temperature (°C)")+
+  theme_bw()
+
+```
+
+
+Great, so we've we've clarified the pipe, revisted mutate, and the dollar sign.
+
+Now let's get a bit more advanced with our language!
+
+~ means function start of a function
+(.) refers to values
+{ } allows the entire object to be passed "as-is" to the next function in the pipe
+
+```{r}
+data("iris")
+
+#the ACROSS argument is tremendously powerful and quite the time saver!
+#In stats, you might often need to center your variables, which you can now do in one line!
+
+iris1<-
+  iris %>%
+  group_by(Species) %>%
+  mutate(across(where(is.numeric), ~ (.x) - mean(.x), #you can also use .
+         .names = "{col}_center"))
+#In this example, let’s say we want to subtract each measure by the average species measure in each category. Great for centering data!
+#WHERE() IS SELECTION LANGUAGE
+
+#identical to above, but using old language
+iris2<-
+  iris %>%
+  group_by(Species) %>%
+  mutate(center_sepal = Sepal.Length - mean(Sepal.Length))
+
+# "." is a placeholder for anything 
+# () captures the whole pattern
+#{ } allows the entire object to be passed "as-is" to the next function in the pipe
+
+
+# SANDWHICH, BREAK DOWN, 
+
+# BREAD (X2), LETTUCE (X3), TOMATO (X2), MEAT (X4) 
+#GATHER- INGREDIENTS, COUNT XX
+
+iris3<-
+  iris %>% 
+  pivot_longer(-c(Species), names_to = "Variable", values_to = "Value") 
+# could also do !Species
+
+ggplot(iris3, aes(y = Value, x = Species, fill = Variable)) + 
+  geom_jitter(height = 0, width = 0.08, alpha = 0.4,
+              shape = 21, size = 3, stroke = 1, colour = "grey") + 
+  stat_summary(geom = "pointrange", 
+               fun.data = "mean_cl_boot",
+               fill = "black", 
+               size = 0.8)+
+  scale_fill_hue(h = c(270, 100))+
+  theme_bw()
+
+
+```
+
+
+
+Sometimes you don't have control over how your data is entered and you gotta wrangle the wild animals. If you learn the basics of ggplot2, sometimes you have to be able to group and ungroup data to better visualize it moving forward. 
+
+
+```{r}
+
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1]) 
+  }
+
+data("relig_income")
+
+reg<- relig_income %>%
+      pivot_longer(!religion, names_to = "income", values_to = "responses")%>% #but notice this is a CHARACTER.
+  
+#Use character if your data is just strings that do not hold specific meaning; use factor if it's a categorical variable with a #limited set of values. The main advantages of using factors are:
+
+#(1) you get an error if you try to give a new value that is not in the levels (so that can save you from typos)
+#(2) you can give an order to the levels and get an ordered factor
+#(3) some functions (especially when modelling) require an explicit factor for categorical variables"
+#(4) you make it clear to the reader that these are not random character strings.
+  
+    mutate(income = as.factor(income), 
+           religion = as.factor(religion)) %>%
+    mutate(incomes =
+             case_when(               #it's like a giant ifelse statment!
+              income == "<$10k" ~ 0,  
+            income == "$10-20k" ~ 10 , 
+            income == "$20-30k" ~ 20,
+            income == "$30-40k" ~ 30 ,
+            income == "$40-50k" ~ 40, 
+          income ==  "$50-75k" ~ 50, 
+           income == "$75-100k" ~ 75, 
+          income ==  "$100-150k" ~ 100,
+          income ==  ">150k" ~ 150)) %>%
+    mutate(income01 = rescale01(incomes))
+     
+
+levels(reg$incomes)
+levels(reg$religion)
+#character to number
+
+### FILTERING ###
+
+reg1 <- reg %>%
+  
+  # FILTERING ON LOGIC #
+        #top_n(1)
+        #top_frac(0.3)  #top 30 % of incomes per relgious category 
+    
+        #filter(responses != 0) #one way to remove 0s
+  
+  # FILTERING ON FACTOR CHARACTERS #
+       #filter(str_detect(religion, "J")) #filter with religions that contain "J"
+  
+  #We can be more specific here and ask for values starting or ending with a letter
+  #filter(str_detect(religion, "c$")) #ends in "c", start would be "^"
+      #does NOT contain "j" (!)
+
+## SANWHICH, %IN% LOOKS AT ELEMENT THAT BELONGS TO A VECTOR. OFTEN, THIS CAN BE FACTOR LEVELS. PERHAPS, THE SEED OF A TOMATO.
+
+      filter(!religion %in% c("Hindu", "Jewish", "Mormon"))
+
+  
+  
+```
+
+
