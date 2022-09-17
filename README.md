@@ -1,7 +1,7 @@
 # DATA_WRANGLING
 Data wrangling video using the tidyverse! In this video we will be exploring verbs, select language and syntax employed in the tidyframework. 
 
-Feel free to send me an email (chloe.a.fouilloux (at) gmail.com) if you need any further assistance.
+Feel free to send me an email (chloe.a.fouilloux (at) gmail.com) if you need any further assistance or have any requests for future video topics!
 
 Best, 
 Chloe
